@@ -48,7 +48,7 @@ Other ecosystems (PyPI, Cargo), automatic fix pull requests, accounts.
 npm install
 npm test          # vitest — must all pass before you touch anything
 npm run typecheck # tsc --noEmit
-npx wrangler dev  # local dev server at http://localhost:8787
+npx wrangler dev  # local dev server at http://localhost:8790
 ```
 
 Drop this repo's own `package-lock.json`, or any lockfile that contains `request@2.88.2`, to see

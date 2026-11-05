@@ -5,3 +5,7 @@ account_id = "1ed921eb42c9296a7db12104be5455c9"
 
 [build]
 command = ""
+
+# 8787 is taken on the build Mac by another local service; never use it.
+[dev]
+port = 8790
