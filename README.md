@@ -3,7 +3,7 @@
 Your dependencies, as a graveyard. Drop in a `package-lock.json` and see which packages are dead, which are
 ghosts and which are zombies, with the evidence behind each grave and what to do next.
 
-**Status: in progress.** Built with Kiro for Kiroween 2026 (Costume Contest category). Not ready for use yet.
+Built with Kiro for Kiroween 2026 (Costume Contest category). Live at **https://haunted-lockfile.designmaster.workers.dev**.
 
 ## Why
 
@@ -56,13 +56,13 @@ a zombie in the graveyard right away.
 
 ## Live URL
 
-<!-- Will be filled in after deploy: https://haunted-lockfile.<account>.workers.dev -->
-_Not yet deployed._
+https://haunted-lockfile.designmaster.workers.dev (Cloudflare Workers). Click "try the demo lockfile" to see
+`request@2.88.2` rise as a zombie, or paste any `package-lock.json`.
 
 ## How Kiro was used
 
-**Spec-driven from the start.** The whole project was built using Kiro's agent mode on
-macOS, following the spec-driven workflow:
+**Spec-driven from the start.** The code was written by Kiro through `kiro-cli chat` (agent mode in the
+terminal, macOS), following the spec-driven workflow. The brief Kiro received is [BRIEF.md](BRIEF.md).
 
 - **Steering docs** (`.kiro/steering/`): three short, concrete files — `product.md`, `tech.md`,
   `structure.md` — established the product goal, the Cloudflare Worker stack, the data sources,
@@ -91,8 +91,11 @@ macOS, following the spec-driven workflow:
   deps.dev, OSV querybatch, OSV `/v1/vulns/{id}`, and the npm registry for `request@2.88.2`,
   making every test fully offline.
 
-- **Mutation testing discipline**: every test was first seen to fail (by temporarily mutating
-  the implementation), then seen to pass with the correct code.
+- **Review loop with mutants**: after each Kiro round, a reviewer ran the suite against hand-written
+  mutants ([scripts/mutants.sh](scripts/mutants.sh): each one breaks one rule, e.g. "zombie without
+  ghost or tombstone", "deprecation taken from any version instead of the locked one") and looked at the
+  live page. Surviving mutants and visual defects went back to Kiro as new review items, and Kiro added
+  the tests and fixes. Run `./scripts/mutants.sh`: every line must say RED.
 
 ## License
 
