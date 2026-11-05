@@ -12,6 +12,9 @@ export function renderPage(): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Haunted Lockfile — your dependencies, as a graveyard</title>
 <meta name="description" content="Drop in a package-lock.json and see which packages are dead, which are ghosts and which are zombies.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
 ${styles}
 </style>

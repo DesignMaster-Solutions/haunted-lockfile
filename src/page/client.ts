@@ -8,6 +8,9 @@ export const clientScript = `
   const CHUNK_SIZE = 10; // Must match MAX_PACKAGES_PER_REQUEST in haunt.ts
   const MAX_CONCURRENT_CHUNKS = 4;
 
+  // Demo lockfile (contains request@2.88.2 zombie)
+  const DEMO_LOCKFILE = {"name":"test-project","version":"1.0.0","lockfileVersion":3,"requires":true,"packages":{"":{"name":"test-project","version":"1.0.0","dependencies":{"request":"^2.88.2"}},"node_modules/request":{"version":"2.88.2","resolved":"https://registry.npmjs.org/request/-/request-2.88.2.tgz","integrity":"sha512-MsvtOrfG9ZcrOwAW+Qi+F6HbD0CWXEh9ou77uOb7FM2WPhwT7smM833PzanhJLsgXjN89Ir6V2PczXNnMpwKhw==","deprecated":"request has been deprecated, see https://github.com/request/request/issues/3142"}}};
+
   // ── State ────────────────────────────────────────────────────────────────
   let allResults = [];
   let currentView = 'graveyard';
@@ -18,6 +21,7 @@ export const clientScript = `
   const fileInput   = document.getElementById('file-input');
   const pasteArea   = document.getElementById('paste-area');
   const analyzeBtn  = document.getElementById('analyze-btn');
+  const demoBtn     = document.getElementById('demo-btn');
   const progress    = document.getElementById('progress');
   const errBanner   = document.getElementById('error-banner');
   const viewControls= document.getElementById('view-controls');
@@ -26,6 +30,7 @@ export const clientScript = `
   const statsEl     = document.getElementById('stats');
   const reportBtn   = document.getElementById('report-btn');
   const fog         = document.getElementById('fog');
+  const fogCaption  = document.getElementById('fog-caption');
   const graveyard   = document.getElementById('graveyard');
   const tableView   = document.getElementById('table-view');
   const tableBody   = document.getElementById('table-body');
@@ -81,6 +86,12 @@ export const clientScript = `
       analyzeBtn.disabled = false;
     };
     reader.readAsText(file);
+  });
+
+  // ── Demo button ──────────────────────────────────────────────────────────
+  demoBtn.addEventListener('click', () => {
+    pasteArea.value = JSON.stringify(DEMO_LOCKFILE, null, 2);
+    analyzeBtn.disabled = false;
   });
 
   // ── Analyze ───────────────────────────────────────────────────────────────
@@ -169,7 +180,7 @@ export const clientScript = `
         }
         
         completed += chunk.length;
-        showProgress('Haunted ' + completed + ' of ' + packageCount + ' packages…');
+        showProgress('Haunting ' + completed + ' of ' + packageCount + ' packages…');
         
         // Render progressively
         allResults = results.filter(r => r !== undefined);
@@ -196,8 +207,7 @@ export const clientScript = `
         }
         
         completed += chunk.length;
-        showProgress('Haunted ' + completed + ' of ' + packageCount + ' packages… (some sources failed)');
-        
+        showProgress('Haunting ' + completed + ' of ' + packageCount + ' packages… (some sources failed)');
         allResults = results.filter(r => r !== undefined);
         if (allResults.length > 0) {
           renderAll();
@@ -213,19 +223,22 @@ export const clientScript = `
       const chunk = chunks[i];
       const startIdx = i * CHUNK_SIZE;
       
-      promises.push(runChunk(chunk, startIdx));
+      const promise = runChunk(chunk, startIdx);
+      promises.push(promise);
       
       // Wait if we hit concurrency limit
       if (promises.length >= MAX_CONCURRENT_CHUNKS) {
         await Promise.race(promises);
-        promises.splice(promises.findIndex(p => p.settled), 1);
+        const idx = promises.findIndex(p => p !== promise);
+        if (idx >= 0) promises.splice(idx, 1);
       }
     }
 
     // Wait for all chunks
     await Promise.all(promises);
 
-    hideProgress();
+    showProgress(packageCount + ' packages haunted');
+    setTimeout(hideProgress, 2000);
     analyzeBtn.disabled = false;
 
     if (parsed.errors.length > 0) {
@@ -258,7 +271,11 @@ export const clientScript = `
 
     const risky = counts.zombie + counts.ghost + counts.tombstone;
     const ratio = allResults.length > 0 ? risky / allResults.length : 0;
+    const pct = Math.round(ratio * 100);
+    
     fog.style.opacity = (ratio * 0.65).toFixed(2);
+    fogCaption.textContent = 'Fog ' + pct + '% — ' + risky + ' of ' + allResults.length + ' packages at risk';
+    fogCaption.classList.add('visible');
   }
 
   const PLOT_ICON = { zombie:'🧟', ghost:'👻', tombstone:'🪦', alive:'🌱' };
@@ -279,22 +296,26 @@ export const clientScript = `
       el.className = 'grave ' + r.plot + (r.isDirect ? ' direct' : ' transitive');
       el.setAttribute('role','listitem');
       el.setAttribute('tabindex','0');
-      el.setAttribute('aria-label', r.name + '@' + r.version + ' — ' + PLOT_LABEL[r.plot]);
+      el.setAttribute('aria-label', r.name + '@' + r.version + ' — ' + PLOT_LABEL[r.plot] + 
+        (r.advisories && r.advisories.length > 0 ? ' — has advisory' : ''));
+      el.title = r.name + '@' + r.version;
 
-      // Stone height for tombstones: years × 30px, clamped 60–200px
-      let stoneStyle = '';
-      if (r.plot === 'tombstone' || r.plot === 'zombie') {
-        const years = r.daysSinceRelease != null ? r.daysSinceRelease / 365 : 2;
-        const h = Math.min(200, Math.max(60, Math.round(years * 30)));
-        stoneStyle = 'min-height:' + h + 'px;';
-      }
-
+      // Build SVG grave
+      const svg = buildGraveSVG(r);
+      
       el.innerHTML =
-        '<div class="stone" style="' + stoneStyle + '" aria-hidden="true">' +
-          '<span class="stone-icon">' + PLOT_ICON[r.plot] + '</span>' +
-        '</div>' +
+        '<div class="grave-stone">' + svg + '</div>' +
         '<div class="grave-label">' + escHtml(r.name) + '</div>' +
         '<div class="grave-plot-label" aria-hidden="true">' + PLOT_LABEL[r.plot] + '</div>';
+
+      // Add advisory badge if has advisories
+      if (r.advisories && r.advisories.length > 0) {
+        const badge = document.createElement('div');
+        badge.className = 'grave-advisory-badge';
+        badge.textContent = '!';
+        badge.setAttribute('aria-label', r.advisories.length + ' advisory');
+        el.querySelector('.grave-stone').appendChild(badge);
+      }
 
       el.addEventListener('click', () => openPanel(r));
       el.addEventListener('keydown', (e) => {
@@ -303,6 +324,67 @@ export const clientScript = `
 
       graveyard.appendChild(el);
     }
+  }
+
+  function buildGraveSVG(r) {
+    // Height calculation: 14px per year, max 140px (10 years), min based on plot
+    const years = r.daysSinceRelease != null ? r.daysSinceRelease / 365 : 0;
+    let h = Math.round(years * 14);
+    h = Math.min(140, Math.max(r.plot === 'alive' ? 40 : 50, h));
+    
+    const w = 54;
+    const colors = {
+      alive: '#2a5c3a',
+      ghost: '#5c6ca0',
+      tombstone: '#4a3060',
+      zombie: '#2a4a20'
+    };
+    const color = colors[r.plot];
+
+    if (r.plot === 'alive') {
+      // Sprout
+      return '<svg class="stone-svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
+        '<circle cx="' + (w/2) + '" cy="' + (h-10) + '" r="8" fill="' + color + '"/>' +
+        '<rect x="' + (w/2-2) + '" y="' + (h-30) + '" width="4" height="20" fill="' + color + '"/>' +
+        '<ellipse cx="' + (w/2-5) + '" cy="' + (h-25) + '" rx="6" ry="10" fill="' + color + '" opacity=".7"/>' +
+        '<ellipse cx="' + (w/2+5) + '" cy="' + (h-25) + '" rx="6" ry="10" fill="' + color + '" opacity=".7"/>' +
+        '</svg>';
+    }
+
+    if (r.plot === 'zombie') {
+      // Tombstone + rising hand
+      const handY = h + 5;
+      return '<svg class="stone-svg" width="' + w + '" height="' + (h + 30) + '" viewBox="0 0 ' + w + ' ' + (h + 30) + '" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="6" y="10" width="' + (w-12) + '" height="' + (h-10) + '" rx="6" ry="6" fill="' + color + '" stroke="#4a9a3a" stroke-width="1.5"/>' +
+        '<text x="' + (w/2) + '" y="' + (h-15) + '" text-anchor="middle" font-size="10" fill="#e8eaf6" font-weight="700">' + 
+          Math.round(years) + 'y' +
+        '</text>' +
+        '<g class="grave-hand" transform="translate(' + (w/2) + ',' + handY + ')">' +
+          '<ellipse cx="0" cy="8" rx="10" ry="6" fill="#4a9a3a" opacity=".8"/>' +
+          '<rect x="-2" y="0" width="4" height="10" rx="2" fill="#4a9a3a"/>' +
+          '<rect x="-8" y="3" width="4" height="8" rx="2" fill="#4a9a3a"/>' +
+          '<rect x="4" y="3" width="4" height="8" rx="2" fill="#4a9a3a"/>' +
+        '</g>' +
+        '</svg>';
+    }
+
+    if (r.plot === 'ghost') {
+      // Tombstone (floating appearance in CSS)
+      return '<svg class="stone-svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="6" y="10" width="' + (w-12) + '" height="' + (h-10) + '" rx="6" ry="6" fill="' + color + '" opacity=".85"/>' +
+        '<text x="' + (w/2) + '" y="' + (h-15) + '" text-anchor="middle" font-size="10" fill="#e8eaf6" font-weight="700">' + 
+          Math.round(years) + 'y' +
+        '</text>' +
+        '</svg>';
+    }
+
+    // Tombstone
+    return '<svg class="stone-svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="6" y="10" width="' + (w-12) + '" height="' + (h-10) + '" rx="6" ry="6" fill="' + color + '"/>' +
+      '<text x="' + (w/2) + '" y="' + (h-15) + '" text-anchor="middle" font-size="10" fill="#e8eaf6" font-weight="700">' + 
+        Math.round(years) + 'y' +
+      '</text>' +
+      '</svg>';
   }
 
   function renderTable() {
@@ -314,10 +396,13 @@ export const clientScript = `
     });
     for (const r of sorted) {
       const tr = document.createElement('tr');
+      const advBadge = (r.advisories && r.advisories.length > 0) 
+        ? '<span class="table-advisory-badge">!</span>' 
+        : '';
       tr.innerHTML =
         '<td class="td-name">' + escHtml(r.name) + '</td>' +
         '<td class="td-name">' + escHtml(r.version) + '</td>' +
-        '<td class="td-plot plot-' + r.plot + '">' + PLOT_ICON[r.plot] + ' ' + PLOT_LABEL[r.plot] + '</td>' +
+        '<td class="td-plot plot-' + r.plot + '">' + PLOT_ICON[r.plot] + ' ' + PLOT_LABEL[r.plot] + advBadge + '</td>' +
         '<td class="td-days">' + (r.daysSinceRelease != null ? r.daysSinceRelease : '—') + '</td>' +
         '<td class="td-direct">' + (r.isDirect ? 'Yes' : 'No') + '</td>' +
         '<td class="td-advisories">' +
@@ -351,9 +436,14 @@ export const clientScript = `
       r.sources.npm     ? 'npm ✓'     : 'npm ✗',
     ].join(' · ');
 
+    const advBadge = (r.advisories && r.advisories.length > 0) 
+      ? '<span class="panel-badge badge-advisory">! Advisory</span>' 
+      : '';
+
     panelInner.innerHTML =
       '<h2>' + escHtml(r.name + '@' + r.version) + '</h2>' +
       '<span class="panel-badge badge-' + r.plot + '">' + PLOT_ICON[r.plot] + ' ' + PLOT_LABEL[r.plot] + '</span>' +
+      advBadge +
       '<dl>' +
         '<dt>Dependency type</dt><dd>' + (r.isDirect ? 'Direct' : 'Transitive') + '</dd>' +
         (r.deprecationMessage ? '<dt>Deprecation</dt><dd>' + escHtml(r.deprecationMessage) + '</dd>' : '') +

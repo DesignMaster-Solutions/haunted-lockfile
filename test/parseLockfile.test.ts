@@ -200,6 +200,30 @@ describe("parseLockfile — property-based", () => {
       )
     );
   });
+
+  it("mutant 4: same package at same version in two locations only appears once", () => {
+    const lockfile = {
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          name: "test",
+          version: "1.0.0",
+        },
+        "node_modules/pkg": {
+          version: "1.0.0",
+        },
+        "node_modules/a/node_modules/pkg": {
+          version: "1.0.0", // same pkg@1.0.0 nested
+        },
+      },
+    };
+
+    const result = parseLockfile(lockfile);
+    const pkgs = result.packages.filter((p) => p.name === "pkg");
+    
+    expect(pkgs).toHaveLength(1);
+    expect(pkgs[0]?.version).toBe("1.0.0");
+  });
 });
 
 // ── Defect tests (code review items) ────────────────────────────────────────
@@ -279,5 +303,36 @@ describe("parseLockfile — defect fixes", () => {
     const pkgB = result.packages.find((p) => p.name === "pkg-b");
     expect(pkgA?.isDirect).toBe(true);
     expect(pkgB?.isDirect).toBe(false);
+  });
+
+  it("mutant 3: nested b and root b at different versions — only root is direct", () => {
+    const lockfile = {
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          name: "test",
+          version: "1.0.0",
+          dependencies: { "b": "^2.0.0" },
+        },
+        "node_modules/b": {
+          version: "2.0.0", // root b at 2.0.0
+        },
+        "node_modules/a": {
+          version: "1.0.0",
+        },
+        "node_modules/a/node_modules/b": {
+          version: "1.0.0", // nested b at 1.0.0
+        },
+      },
+    };
+
+    const result = parseLockfile(lockfile);
+    expect(result.packages).toHaveLength(3);
+    
+    const rootB = result.packages.find((p) => p.name === "b" && p.version === "2.0.0");
+    const nestedB = result.packages.find((p) => p.name === "b" && p.version === "1.0.0");
+    
+    expect(rootB?.isDirect).toBe(true); // only node_modules/b is direct
+    expect(nestedB?.isDirect).toBe(false); // node_modules/a/node_modules/b is not direct
   });
 });

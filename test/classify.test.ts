@@ -78,6 +78,46 @@ describe("classify — alive", () => {
     const result = classify(makePkg(), makeDepsdev(), oneAdvisory, null, NOW, sources);
     expect(result.plot).toBe("alive");
   });
+
+  it("Group B: alive package with advisory shows warning and suggests upgrade", () => {
+    const result = classify(
+      makePkg({ version: "1.0.0" }),
+      makeDepsdev({
+        versions: [
+          { version: "2.0.0", publishedAt: "2026-01-01T00:00:00Z", isDeprecated: false },
+          { version: "1.0.0", publishedAt: "2025-01-01T00:00:00Z", isDeprecated: false },
+        ]
+      }),
+      oneAdvisory,
+      null,
+      NOW,
+      sources
+    );
+    
+    expect(result.plot).toBe("alive");
+    expect(result.advisories).toHaveLength(1);
+    expect(result.nextStep).toContain("Advisory affects this version");
+    expect(result.nextStep).toContain("2.0.0");
+  });
+
+  it("Group B: alive package with advisory but no newer version available", () => {
+    const result = classify(
+      makePkg({ version: "1.0.0" }),
+      makeDepsdev({
+        versions: [
+          { version: "1.0.0", publishedAt: "2025-01-01T00:00:00Z", isDeprecated: false },
+        ]
+      }),
+      oneAdvisory,
+      null,
+      NOW,
+      sources
+    );
+    
+    expect(result.plot).toBe("alive");
+    expect(result.advisories).toHaveLength(1);
+    expect(result.nextStep).toContain("Advisory affects this version");
+  });
 });
 
 describe("classify — ghost", () => {
@@ -109,6 +149,24 @@ describe("classify — ghost", () => {
     );
     expect(result.plot).toBe("ghost");
     expect(result.deprecationMessage).toBe("Use 2.0.0");
+  });
+
+  it("NOT ghost when old version is deprecated but locked version is not (mutant 1)", () => {
+    const result = classify(
+      makePkg({ version: "2.0.0" }),
+      makeDepsdev({
+        versions: [
+          { version: "2.0.0", publishedAt: "2026-01-01T00:00:00Z", isDeprecated: false },
+          { version: "1.0.0", publishedAt: "2023-01-01T00:00:00Z", isDeprecated: true, deprecatedReason: "Use 2.0.0" }
+        ]
+      }),
+      noAdvisories,
+      null,
+      NOW,
+      sources
+    );
+    expect(result.plot).toBe("alive");
+    expect(result.deprecationMessage).toBeUndefined();
   });
 });
 

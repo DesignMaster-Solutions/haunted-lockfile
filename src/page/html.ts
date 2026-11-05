@@ -11,8 +11,10 @@ export const html = `
   <strong>&#x1F4C1; Drop your package-lock.json here</strong>
   <p>or paste the contents below, then click Analyze</p>
   <textarea id="paste-area" placeholder='{"lockfileVersion": 3, "packages": {...}}' aria-label="Paste package-lock.json contents"></textarea>
-  <br>
-  <button id="analyze-btn" disabled>Analyze</button>
+  <div class="drop-zone-actions">
+    <button id="analyze-btn" disabled>Analyze</button>
+    <button id="demo-btn">Try the demo lockfile</button>
+  </div>
 </section>
 
 <div id="error-banner" role="alert" aria-live="assertive"></div>
@@ -27,8 +29,20 @@ export const html = `
 <button id="report-btn" aria-label="Export findings as Markdown">&#x1F4C4; Export Report</button>
 
 <main id="graveyard-wrap" role="main" aria-label="Graveyard">
-  <div id="fog" aria-hidden="true"></div>
-  <div id="graveyard" role="list" aria-label="Packages"></div>
+  <div id="graveyard-scene">
+    <div id="sky" aria-hidden="true"></div>
+    <div id="moon" aria-hidden="true"></div>
+    <div id="fog" aria-hidden="true"></div>
+    <div id="fog-caption" aria-live="polite"></div>
+    <div id="ground" aria-hidden="true"></div>
+    <div id="height-legend" aria-hidden="true">
+      <strong>Headstone height = years since last release</strong>
+      <div>2 years: ~28px</div>
+      <div>5 years: ~70px</div>
+      <div>10 years: ~140px (max)</div>
+    </div>
+    <div id="graveyard" role="list" aria-label="Packages"></div>
+  </div>
 </main>
 
 <section id="table-view" aria-label="Packages table">

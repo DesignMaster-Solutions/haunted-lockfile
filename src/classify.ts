@@ -69,7 +69,7 @@ export function classify(
   }
 
   // ── Next step ───────────────────────────────────────────────────────────────
-  const nextStep = buildNextStep(plot, pkg.name, pkg.version, depsdev);
+  const nextStep = buildNextStep(plot, pkg.name, pkg.version, depsdev, advisories);
 
   return {
     name: pkg.name,
@@ -85,7 +85,31 @@ export function classify(
   };
 }
 
-function buildNextStep(plot: Plot, name: string, lockedVersion: string, depsdev: DepsDev | null): string {
+function buildNextStep(plot: Plot, name: string, lockedVersion: string, depsdev: DepsDev | null, advisories: OsvAdvisory[]): string {
+  // If alive but has advisories, warn and suggest upgrade
+  if (plot === "alive" && advisories.length > 0) {
+    // Find newest non-deprecated version
+    if (depsdev && depsdev.versions.length > 0) {
+      const candidates = depsdev.versions
+        .filter((v) => v.publishedAt !== null && !v.isDeprecated)
+        .map((v) => ({
+          version: v.version,
+          publishedAt: new Date(v.publishedAt as string).getTime(),
+        }))
+        .filter((v) => !isNaN(v.publishedAt));
+
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => b.publishedAt - a.publishedAt);
+        const newest = candidates[0];
+        
+        if (newest && newest.version !== lockedVersion) {
+          return `Advisory affects this version: upgrade to ${name}@${newest.version} and re-check.`;
+        }
+      }
+    }
+    return `Advisory affects this version: check for updates.`;
+  }
+
   if (plot === "alive") {
     return "No action needed.";
   }
