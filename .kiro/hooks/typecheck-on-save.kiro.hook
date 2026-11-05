@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "typecheck-on-save",
+  "description": "Run TypeScript type-check (tsc --noEmit) whenever a TypeScript source file is saved.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/**/*.ts", "test/**/*.ts"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npm run typecheck"
+  }
+}

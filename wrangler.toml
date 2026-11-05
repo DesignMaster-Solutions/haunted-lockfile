@@ -1,0 +1,7 @@
+name = "haunted-lockfile"
+main = "src/worker.ts"
+compatibility_date = "2024-11-01"
+account_id = "1ed921eb42c9296a7db12104be5455c9"
+
+[build]
+command = ""

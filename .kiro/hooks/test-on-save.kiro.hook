@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "test-on-save",
+  "description": "Run npm test (vitest) whenever a TypeScript source file is saved.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/**/*.ts"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npm test"
+  }
+}

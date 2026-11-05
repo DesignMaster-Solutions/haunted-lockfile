@@ -1,0 +1,25 @@
+{
+  "versions": [
+    {
+      "versionKey": { "system": "npm", "name": "request", "version": "2.88.2" },
+      "publishedAt": "2020-02-11T16:35:36Z",
+      "isDefault": true,
+      "isDeprecated": true,
+      "deprecatedReason": "request has been deprecated, see https://github.com/request/request/issues/3142"
+    },
+    {
+      "versionKey": { "system": "npm", "name": "request", "version": "2.88.1" },
+      "publishedAt": "2019-10-09T00:00:00Z",
+      "isDefault": false,
+      "isDeprecated": true,
+      "deprecatedReason": "request has been deprecated, see https://github.com/request/request/issues/3142"
+    },
+    {
+      "versionKey": { "system": "npm", "name": "request", "version": "2.87.0" },
+      "publishedAt": "2018-05-16T00:00:00Z",
+      "isDefault": false,
+      "isDeprecated": true,
+      "deprecatedReason": "request has been deprecated, see https://github.com/request/request/issues/3142"
+    }
+  ]
+}
