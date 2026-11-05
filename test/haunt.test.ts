@@ -63,16 +63,17 @@ function makeRequest(body: unknown, method = "POST"): Request {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("handleHaunt — validation", () => {
-  it("rejects more than 2000 packages with HTTP 400", async () => {
+  it("rejects more than MAX_PACKAGES_PER_REQUEST packages with HTTP 413", async () => {
+    // 2001 packages in one request hits the per-request limit first
     const packages = Array.from({ length: 2001 }, (_, i) => ({
       name: `pkg-${i}`,
       version: "1.0.0",
     }));
     const req = makeRequest({ packages });
     const res = await handleHaunt(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(413);
     const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/2000/);
+    expect(body.error).toMatch(/too many packages/i);
   });
 
   it("rejects non-POST with 405", async () => {
@@ -387,5 +388,49 @@ describe("handleHaunt — defect fixes", () => {
     const body = await res.json() as { results: Array<{ nextStep: string }> };
 
     expect(body.results[0]?.nextStep).toContain("2.0.0");
+  });
+});
+
+describe("handleHaunt — per-request package limit", () => {
+  it("rejects requests with more than MAX_PACKAGES_PER_REQUEST packages with HTTP 413", async () => {
+    // MAX_PACKAGES_PER_REQUEST should be exported from haunt.ts
+    const { MAX_PACKAGES_PER_REQUEST } = await import("../src/haunt.js");
+    
+    const packages = [];
+    for (let i = 0; i < MAX_PACKAGES_PER_REQUEST + 1; i++) {
+      packages.push({ name: `pkg-${i}`, version: "1.0.0", isDirect: false });
+    }
+
+    const req = makeRequest({ packages });
+    const res = await handleHaunt(req);
+    
+    expect(res.status).toBe(413);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/too many packages/i);
+    expect(body.error).toContain(String(MAX_PACKAGES_PER_REQUEST));
+  });
+
+  it("accepts requests with exactly MAX_PACKAGES_PER_REQUEST packages", async () => {
+    vi.stubGlobal(
+      "fetch",
+      makeFetchMock({
+        "api.deps.dev": { versions: [] },
+        "api.osv.dev/v1/querybatch": { results: [] },
+        "registry.npmjs.org": {},
+      })
+    );
+    cachesStub.default.match.mockResolvedValue(undefined);
+
+    const { MAX_PACKAGES_PER_REQUEST } = await import("../src/haunt.js");
+    
+    const packages = [];
+    for (let i = 0; i < MAX_PACKAGES_PER_REQUEST; i++) {
+      packages.push({ name: `pkg-${i}`, version: "1.0.0", isDirect: false });
+    }
+
+    const req = makeRequest({ packages });
+    const res = await handleHaunt(req);
+    
+    expect(res.status).toBe(200);
   });
 });

@@ -148,7 +148,7 @@ export function parseLockfile(input: unknown): ParseResult {
  * "node_modules/@scope/foo"             → "@scope/foo"
  * "node_modules/foo/node_modules/bar"   → "bar"
  */
-function keyToPackageName(key: string): string | null {
+export function keyToPackageName(key: string): string | null {
   // Find the last occurrence of "node_modules/"
   const marker = "node_modules/";
   const idx = key.lastIndexOf(marker);

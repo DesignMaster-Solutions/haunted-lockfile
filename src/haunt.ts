@@ -3,6 +3,7 @@ import { classify } from "./classify.js";
 import type { DepsDev, HauntResult, NpmMeta, OsvAdvisory, PackageInput } from "./types.js";
 
 const MAX_PACKAGES = 2000;
+export const MAX_PACKAGES_PER_REQUEST = 10; // Cloudflare free: 50 subrequests, safety margin
 const UPSTREAM_TIMEOUT_MS = 5000;
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
 const OSV_QUERYBATCH_CHUNK = 1000; // OSV API limit
@@ -301,6 +302,13 @@ export async function handleHaunt(request: Request): Promise<Response> {
 
   if (!Array.isArray(rawPackages)) {
     return json({ error: "Body must have a 'packages' array" }, 400);
+  }
+
+  if (rawPackages.length > MAX_PACKAGES_PER_REQUEST) {
+    return json(
+      { error: `Too many packages in one request: ${rawPackages.length} > ${MAX_PACKAGES_PER_REQUEST}` },
+      413
+    );
   }
 
   if (rawPackages.length > MAX_PACKAGES) {

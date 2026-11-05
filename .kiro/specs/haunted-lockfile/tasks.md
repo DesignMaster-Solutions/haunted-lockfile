@@ -40,3 +40,33 @@ Tasks are ordered; each depends on the ones before it.
 
 ## T-10 README update
 - [x] How to run, how Kiro was used, live URL placeholder
+
+
+## Code Review Round 2 — Completed 2026-11-05
+
+### A. Worker chunking and progressive rendering
+- [x] Exported `MAX_PACKAGES_PER_REQUEST = 10` from `src/haunt.ts`
+- [x] Worker rejects requests with >10 packages with HTTP 413
+- [x] Page splits lockfile into chunks of 10 packages
+- [x] Max 4 chunks in flight at once
+- [x] Progressive rendering as chunks return
+- [x] Shows "N of M packages haunted" progress
+- [x] Failed chunks mark packages as "unknown" (never dropped silently)
+- [x] Per-package caching in `caches.default` (6h TTL) by name@version
+- [x] Test coverage for 413 rejection and exact-limit acceptance
+
+### B. Parser served to browser
+- [x] Exported `keyToPackageName` from `src/parseLockfile.ts`
+- [x] Added GET `/parse.js` route to `src/worker.ts`
+- [x] Returns `${keyToPackageName.toString()}\n${parseLockfile.toString()}`
+- [x] Page loads parser dynamically from `/parse.js` on mount
+- [x] Test verifies served parser evaluates and parses identically to module
+- [x] Browser runs exactly the tested parser code
+
+### C. File size discipline
+- [x] Split `src/page.ts` (was 780 lines) into modules under `src/page/`:
+  - `src/page.ts` — 26 lines (imports and template assembly)
+  - `src/page/styles.ts` — 279 lines (all CSS)
+  - `src/page/html.ts` — 64 lines (HTML structure)
+  - `src/page/client.ts` — 466 lines (client-side JavaScript)
+- [x] Every file now under 500 lines
