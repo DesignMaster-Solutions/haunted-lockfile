@@ -6,7 +6,6 @@ const MAX_PACKAGES = 2000;
 export const MAX_PACKAGES_PER_REQUEST = 10; // Cloudflare free: 50 subrequests, safety margin
 const UPSTREAM_TIMEOUT_MS = 5000;
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
-const OSV_QUERYBATCH_CHUNK = 1000; // OSV API limit
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -116,60 +115,53 @@ async function fetchDepsdev(name: string): Promise<DepsDev | null> {
 // ── OSV ──────────────────────────────────────────────────────────────────────
 
 /**
- * Step 1: querybatch (chunked at 1000) — returns only vuln IDs per package.
+ * Step 1: querybatch — returns only vuln IDs per package.
  * Step 2: for each unique ID, GET /v1/vulns/{id} for severity + summary.
+ * Since MAX_PACKAGES_PER_REQUEST is 10, we never exceed OSV's 1000-query limit.
  */
 async function fetchOsvBatch(packages: PackageInput[]): Promise<Map<number, OsvAdvisory[]>> {
-  // Chunk queries at OSV_QUERYBATCH_CHUNK limit
-  const allQueries = packages.map((p) => ({
+  const queries = packages.map((p) => ({
     package: { name: p.name, ecosystem: "npm" },
     version: p.version,
   }));
 
   const idsByIndex = new Map<number, string[]>();
   
-  // Process in chunks
-  for (let chunkStart = 0; chunkStart < allQueries.length; chunkStart += OSV_QUERYBATCH_CHUNK) {
-    const chunkEnd = Math.min(chunkStart + OSV_QUERYBATCH_CHUNK, allQueries.length);
-    const queries = allQueries.slice(chunkStart, chunkEnd);
-    
-    try {
-      const res = await fetchWithTimeout("https://api.osv.dev/v1/querybatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ queries }),
-      });
+  try {
+    const res = await fetchWithTimeout("https://api.osv.dev/v1/querybatch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ queries }),
+    });
 
-      if (res.ok) {
-        const data = (await res.json()) as Record<string, unknown>;
-        const rawResults = data["results"];
-        if (Array.isArray(rawResults)) {
-          for (let i = 0; i < (rawResults as unknown[]).length; i++) {
-            const globalIndex = chunkStart + i;
-            const entry = (rawResults as unknown[])[i];
-            const ids: string[] = [];
-            if (entry !== null && typeof entry === "object") {
-              const entryObj = entry as Record<string, unknown>;
-              const vulns = entryObj["vulns"];
-              if (Array.isArray(vulns)) {
-                for (const vuln of vulns as unknown[]) {
-                  if (vuln !== null && typeof vuln === "object") {
-                    const v = vuln as Record<string, unknown>;
-                    if (typeof v["id"] === "string") ids.push(v["id"]);
-                  }
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, unknown>;
+      const rawResults = data["results"];
+      if (Array.isArray(rawResults)) {
+        for (let i = 0; i < (rawResults as unknown[]).length; i++) {
+          const entry = (rawResults as unknown[])[i];
+          const ids: string[] = [];
+          if (entry !== null && typeof entry === "object") {
+            const entryObj = entry as Record<string, unknown>;
+            const vulns = entryObj["vulns"];
+            if (Array.isArray(vulns)) {
+              for (const vuln of vulns as unknown[]) {
+                if (vuln !== null && typeof vuln === "object") {
+                  const v = vuln as Record<string, unknown>;
+                  if (typeof v["id"] === "string") ids.push(v["id"]);
                 }
               }
             }
-            idsByIndex.set(globalIndex, ids);
           }
+          idsByIndex.set(i, ids);
         }
       }
-    } catch {
-      // Chunk failed — mark all indexes in this chunk as empty
-      for (let i = chunkStart; i < chunkEnd; i++) {
-        if (!idsByIndex.has(i)) {
-          idsByIndex.set(i, []);
-        }
+    }
+  } catch {
+    // querybatch failed — mark all indexes as empty
+    for (let i = 0; i < queries.length; i++) {
+      if (!idsByIndex.has(i)) {
+        idsByIndex.set(i, []);
       }
     }
   }

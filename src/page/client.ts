@@ -1,5 +1,8 @@
 // src/page/client.ts — client-side JavaScript (will be inlined as a string)
 
+import { sceneRenderer } from "./scene.js";
+import { panelHandler } from "./panel.js";
+
 export const clientScript = `
 (function(){
   'use strict';
@@ -21,7 +24,7 @@ export const clientScript = `
   const fileInput   = document.getElementById('file-input');
   const pasteArea   = document.getElementById('paste-area');
   const analyzeBtn  = document.getElementById('analyze-btn');
-  const demoBtn     = document.getElementById('demo-btn');
+  const demoLink    = document.getElementById('demo-link');
   const progress    = document.getElementById('progress');
   const errBanner   = document.getElementById('error-banner');
   const viewControls= document.getElementById('view-controls');
@@ -29,15 +32,9 @@ export const clientScript = `
   const btnTable    = document.getElementById('btn-table');
   const statsEl     = document.getElementById('stats');
   const reportBtn   = document.getElementById('report-btn');
-  const fog         = document.getElementById('fog');
-  const fogCaption  = document.getElementById('fog-caption');
-  const graveyard   = document.getElementById('graveyard');
+  const graveyardWrap = document.getElementById('graveyard-wrap');
   const tableView   = document.getElementById('table-view');
   const tableBody   = document.getElementById('table-body');
-  const panel       = document.getElementById('panel');
-  const panelInner  = document.getElementById('panel-inner');
-  const panelClose  = document.getElementById('panel-close');
-  const panelBackdrop = document.getElementById('panel-backdrop');
 
   // ── Load parser from /parse.js ───────────────────────────────────────────
   (async function loadParser() {
@@ -88,10 +85,13 @@ export const clientScript = `
     reader.readAsText(file);
   });
 
-  // ── Demo button ──────────────────────────────────────────────────────────
-  demoBtn.addEventListener('click', () => {
+  // ── Demo link — loads demo AND analyzes immediately ──────────────────────
+  demoLink.addEventListener('click', (e) => {
+    e.preventDefault();
     pasteArea.value = JSON.stringify(DEMO_LOCKFILE, null, 2);
     analyzeBtn.disabled = false;
+    // Auto-run analyze
+    setTimeout(() => doAnalyze(), 100);
   });
 
   // ── Analyze ───────────────────────────────────────────────────────────────
@@ -252,11 +252,12 @@ export const clientScript = `
   // ── Render ────────────────────────────────────────────────────────────────
   function renderAll() {
     renderStats();
-    renderGraveyard();
+    renderGraveyardScene();
     renderTable();
     viewControls.classList.add('visible');
     statsEl.classList.add('visible');
     reportBtn.classList.add('visible');
+    graveyardWrap.classList.add('visible');
     setView(currentView);
   }
 
@@ -268,124 +269,32 @@ export const clientScript = `
       '<span class="stat stat-ghost">&#x1F47B; Ghost: ' + counts.ghost + '</span>' +
       '<span class="stat stat-tombstone">&#x1FAA6; Tombstone: ' + counts.tombstone + '</span>' +
       '<span class="stat stat-alive">&#x1F331; Alive: ' + counts.alive + '</span>';
+  }
 
-    const risky = counts.zombie + counts.ghost + counts.tombstone;
-    const ratio = allResults.length > 0 ? risky / allResults.length : 0;
-    const pct = Math.round(ratio * 100);
+  ${sceneRenderer}
+
+  function renderGraveyardScene() {
+    const groundY = 360; // 78% of 460px scene height
+    const sceneHtml = buildGraveyardScene(allResults, groundY);
+    graveyardWrap.innerHTML = sceneHtml;
     
-    fog.style.opacity = (ratio * 0.65).toFixed(2);
-    fogCaption.textContent = 'Fog ' + pct + '% — ' + risky + ' of ' + allResults.length + ' packages at risk';
-    fogCaption.classList.add('visible');
+    // Attach click and keyboard handlers to graves
+    const graves = graveyardWrap.querySelectorAll('.grave-item');
+    graves.forEach((grave, i) => {
+      const pkg = allResults[i];
+      if (!pkg) return;
+      grave.addEventListener('click', () => openPanel(pkg, grave));
+      grave.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openPanel(pkg, grave);
+        }
+      });
+    });
   }
 
   const PLOT_ICON = { zombie:'🧟', ghost:'👻', tombstone:'🪦', alive:'🌱' };
   const PLOT_LABEL = { zombie:'Zombie', ghost:'Ghost', tombstone:'Tombstone', alive:'Alive' };
-
-  function renderGraveyard() {
-    graveyard.innerHTML = '';
-    // Sort: direct first, then by plot severity, then alphabetical
-    const order = { zombie:0, ghost:1, tombstone:2, alive:3 };
-    const sorted = [...allResults].sort((a,b) => {
-      if (a.isDirect !== b.isDirect) return a.isDirect ? -1 : 1;
-      if (order[a.plot] !== order[b.plot]) return order[a.plot] - order[b.plot];
-      return a.name.localeCompare(b.name);
-    });
-
-    for (const r of sorted) {
-      const el = document.createElement('div');
-      el.className = 'grave ' + r.plot + (r.isDirect ? ' direct' : ' transitive');
-      el.setAttribute('role','listitem');
-      el.setAttribute('tabindex','0');
-      el.setAttribute('aria-label', r.name + '@' + r.version + ' — ' + PLOT_LABEL[r.plot] + 
-        (r.advisories && r.advisories.length > 0 ? ' — has advisory' : ''));
-      el.title = r.name + '@' + r.version;
-
-      // Build SVG grave
-      const svg = buildGraveSVG(r);
-      
-      el.innerHTML =
-        '<div class="grave-stone">' + svg + '</div>' +
-        '<div class="grave-label">' + escHtml(r.name) + '</div>' +
-        '<div class="grave-plot-label" aria-hidden="true">' + PLOT_LABEL[r.plot] + '</div>';
-
-      // Add advisory badge if has advisories
-      if (r.advisories && r.advisories.length > 0) {
-        const badge = document.createElement('div');
-        badge.className = 'grave-advisory-badge';
-        badge.textContent = '!';
-        badge.setAttribute('aria-label', r.advisories.length + ' advisory');
-        el.querySelector('.grave-stone').appendChild(badge);
-      }
-
-      el.addEventListener('click', () => openPanel(r));
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPanel(r); }
-      });
-
-      graveyard.appendChild(el);
-    }
-  }
-
-  function buildGraveSVG(r) {
-    // Height calculation: 14px per year, max 140px (10 years), min based on plot
-    const years = r.daysSinceRelease != null ? r.daysSinceRelease / 365 : 0;
-    let h = Math.round(years * 14);
-    h = Math.min(140, Math.max(r.plot === 'alive' ? 40 : 50, h));
-    
-    const w = 54;
-    const colors = {
-      alive: '#2a5c3a',
-      ghost: '#5c6ca0',
-      tombstone: '#4a3060',
-      zombie: '#2a4a20'
-    };
-    const color = colors[r.plot];
-
-    if (r.plot === 'alive') {
-      // Sprout
-      return '<svg class="stone-svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
-        '<circle cx="' + (w/2) + '" cy="' + (h-10) + '" r="8" fill="' + color + '"/>' +
-        '<rect x="' + (w/2-2) + '" y="' + (h-30) + '" width="4" height="20" fill="' + color + '"/>' +
-        '<ellipse cx="' + (w/2-5) + '" cy="' + (h-25) + '" rx="6" ry="10" fill="' + color + '" opacity=".7"/>' +
-        '<ellipse cx="' + (w/2+5) + '" cy="' + (h-25) + '" rx="6" ry="10" fill="' + color + '" opacity=".7"/>' +
-        '</svg>';
-    }
-
-    if (r.plot === 'zombie') {
-      // Tombstone + rising hand
-      const handY = h + 5;
-      return '<svg class="stone-svg" width="' + w + '" height="' + (h + 30) + '" viewBox="0 0 ' + w + ' ' + (h + 30) + '" xmlns="http://www.w3.org/2000/svg">' +
-        '<rect x="6" y="10" width="' + (w-12) + '" height="' + (h-10) + '" rx="6" ry="6" fill="' + color + '" stroke="#4a9a3a" stroke-width="1.5"/>' +
-        '<text x="' + (w/2) + '" y="' + (h-15) + '" text-anchor="middle" font-size="10" fill="#e8eaf6" font-weight="700">' + 
-          Math.round(years) + 'y' +
-        '</text>' +
-        '<g class="grave-hand" transform="translate(' + (w/2) + ',' + handY + ')">' +
-          '<ellipse cx="0" cy="8" rx="10" ry="6" fill="#4a9a3a" opacity=".8"/>' +
-          '<rect x="-2" y="0" width="4" height="10" rx="2" fill="#4a9a3a"/>' +
-          '<rect x="-8" y="3" width="4" height="8" rx="2" fill="#4a9a3a"/>' +
-          '<rect x="4" y="3" width="4" height="8" rx="2" fill="#4a9a3a"/>' +
-        '</g>' +
-        '</svg>';
-    }
-
-    if (r.plot === 'ghost') {
-      // Tombstone (floating appearance in CSS)
-      return '<svg class="stone-svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
-        '<rect x="6" y="10" width="' + (w-12) + '" height="' + (h-10) + '" rx="6" ry="6" fill="' + color + '" opacity=".85"/>' +
-        '<text x="' + (w/2) + '" y="' + (h-15) + '" text-anchor="middle" font-size="10" fill="#e8eaf6" font-weight="700">' + 
-          Math.round(years) + 'y' +
-        '</text>' +
-        '</svg>';
-    }
-
-    // Tombstone
-    return '<svg class="stone-svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="6" y="10" width="' + (w-12) + '" height="' + (h-10) + '" rx="6" ry="6" fill="' + color + '"/>' +
-      '<text x="' + (w/2) + '" y="' + (h-15) + '" text-anchor="middle" font-size="10" fill="#e8eaf6" font-weight="700">' + 
-        Math.round(years) + 'y' +
-      '</text>' +
-      '</svg>';
-  }
 
   function renderTable() {
     tableBody.innerHTML = '';
@@ -416,63 +325,10 @@ export const clientScript = `
     }
   }
 
-  // ── Panel ─────────────────────────────────────────────────────────────────
-  function openPanel(r) {
-    const advisoriesHtml = r.advisories && r.advisories.length > 0
-      ? '<div class="advisory-list">' +
-          r.advisories.map(a =>
-            '<div class="advisory-item"><a href="' + escHtml(a.url||'#') + '" target="_blank" rel="noopener">' +
-            escHtml(a.id) + '</a>' +
-            (a.severity ? ' (' + escHtml(a.severity) + ')' : '') +
-            (a.summary ? ' — ' + escHtml(a.summary) : '') +
-            '</div>'
-          ).join('') +
-        '</div>'
-      : '<span>None</span>';
+  ${panelHandler}
 
-    const sourcesText = [
-      r.sources.depsdev ? 'deps.dev ✓' : 'deps.dev ✗',
-      r.sources.osv     ? 'OSV ✓'     : 'OSV ✗',
-      r.sources.npm     ? 'npm ✓'     : 'npm ✗',
-    ].join(' · ');
-
-    const advBadge = (r.advisories && r.advisories.length > 0) 
-      ? '<span class="panel-badge badge-advisory">! Advisory</span>' 
-      : '';
-
-    panelInner.innerHTML =
-      '<h2>' + escHtml(r.name + '@' + r.version) + '</h2>' +
-      '<span class="panel-badge badge-' + r.plot + '">' + PLOT_ICON[r.plot] + ' ' + PLOT_LABEL[r.plot] + '</span>' +
-      advBadge +
-      '<dl>' +
-        '<dt>Dependency type</dt><dd>' + (r.isDirect ? 'Direct' : 'Transitive') + '</dd>' +
-        (r.deprecationMessage ? '<dt>Deprecation</dt><dd>' + escHtml(r.deprecationMessage) + '</dd>' : '') +
-        (r.lastPublishedAt ? '<dt>Last release</dt><dd>' + escHtml(r.lastPublishedAt.slice(0,10)) +
-          (r.daysSinceRelease != null ? ' (' + r.daysSinceRelease + ' days ago)' : '') + '</dd>' : '') +
-        '<dt>Advisories</dt><dd>' + advisoriesHtml + '</dd>' +
-      '</dl>' +
-      '<div class="next-step"><strong>Next step:</strong> ' + escHtml(r.nextStep) + '</div>' +
-      '<div class="sources">Sources: ' + escHtml(sourcesText) + '</div>';
-
-    panel.classList.add('open');
-    panelBackdrop.classList.add('open');
-    panel.setAttribute('aria-hidden','false');
-    panelBackdrop.setAttribute('aria-hidden','false');
-    panelClose.focus();
-  }
-
-  function closePanel() {
-    panel.classList.remove('open');
-    panelBackdrop.classList.remove('open');
-    panel.setAttribute('aria-hidden','true');
-    panelBackdrop.setAttribute('aria-hidden','true');
-  }
-
-  panelClose.addEventListener('click', closePanel);
-  panelBackdrop.addEventListener('click', closePanel);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && panel.classList.contains('open')) closePanel();
-  });
+  // Setup panel handlers on page load
+  setupPanelHandlers();
 
   // ── View toggle ────────────────────────────────────────────────────────────
   btnGraveyard.addEventListener('click', () => setView('graveyard'));
@@ -481,7 +337,7 @@ export const clientScript = `
   function setView(v) {
     currentView = v;
     const isGraveyard = v === 'graveyard';
-    document.getElementById('graveyard-wrap').style.display = isGraveyard ? '' : 'none';
+    graveyardWrap.style.display = isGraveyard ? '' : 'none';
     tableView.classList.toggle('active', !isGraveyard);
     btnGraveyard.classList.toggle('active', isGraveyard);
     btnTable.classList.toggle('active', !isGraveyard);

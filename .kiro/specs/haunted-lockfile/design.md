@@ -14,7 +14,7 @@ Browser                         Cloudflare Worker
    { packages: [{name,version}] } ──►  haunt.ts
                                         ├─ per-key caching (deps.dev, OSV, npm)
                                         ├─ batch deps.dev calls (25 concurrent)
-                                        ├─ OSV querybatch (chunked at 1000)
+                                        ├─ OSV querybatch (ONE call per request)
                                         ├─ OSV advisory details (25 concurrent)
                                         ├─ npm registry (fallback only)
                                         ├─ classify() each package
@@ -100,14 +100,14 @@ classify(pkg, depsdev, osv, npm, now):
 
 ## POST /api/haunt implementation
 
-1. Parse body, validate ≤ 2,000 packages.
+1. Parse body, validate ≤ 10 packages per request (MAX_PACKAGES_PER_REQUEST), 413 if exceeded.
 2. Per-key caching:
    - deps.dev results cached per package name: `haunted-lockfile-cache.internal/depsdev/{name}`
    - OSV advisory details cached per ID: `haunted-lockfile-cache.internal/osv/{id}`
    - npm registry cached per name@version: `haunted-lockfile-cache.internal/npm/{name}/{version}`
    - All cached for 6 hours in `caches.default`
 3. Fan out deps.dev calls (one per unique package name, 25 concurrent max).
-4. OSV `querybatch` POST (chunked at 1,000 queries per call).
+4. OSV `querybatch` POST (ONE call per request — MAX_PACKAGES_PER_REQUEST=10 never exceeds 1000-query limit).
 5. OSV advisory detail fetch: GET `/v1/vulns/{id}` for each unique ID from querybatch (25 concurrent max).
 6. npm registry called only as fallback: when deps.dev didn't answer OR doesn't list the locked version.
 7. Each upstream wrapped in `AbortController` with 5s timeout.
@@ -115,39 +115,51 @@ classify(pkg, depsdev, osv, npm, now):
 
 ## Front-end graveyard rendering
 
-Night scene with SVG elements:
-- **Sky**: gradient background (#0a0d14 to #1a1f2e), positioned absolutely behind all graves.
-- **Moon**: circular element (60px diameter) in top-right corner with glow effect.
-- **Ground**: gradient strip at bottom (100px high, var(--ground) to transparent).
-- **Graves**: bottom-aligned on ground, flexbox with flex-end alignment.
+**Self-contained SVG scene** (single `<section class="graveyard-container">` with `<svg viewBox="0 0 1000 460">`):
+- Scene placed right under stats chips, hidden until results arrive
+- Responsive: ~460px tall on desktop, ~360px on phones
+- All elements (moon, stars, legend, fog caption, graves) inside the SVG — no position:fixed
 
-SVG graves:
-- **Alive**: sprout/flower (circle base + stem + leaves), 40px height, green (#2a5c3a).
-- **Ghost**: rounded-top headstone (54px wide), translucent fill (#5c6ca0), drift animation (translateY ±8px, 3s ease-in-out).
-- **Tombstone**: rounded-top headstone, purple fill (#4a3060), height = 14px per year since last release (min 50px, max 140px), years engraved as SVG text.
-- **Zombie**: tombstone with green border (#4a9a3a) + rising hand SVG below (animated translateY 0–40%, 2.5s ease-in-out).
+**Sky & moon**:
+- Sky: linearGradient (#0a0d14 to #1a1f2e)
+- Moon: circle at (850, 80) with radial glow, 3 crater ellipses (#d0d2e0, filtered shadow)
+- Stars: 7 static circles at various positions, opacity 0.4–0.8 (no twinkling under reduced-motion)
 
-Layout:
-- Direct dependencies: 1.2× scale (transform: scale(1.2)).
-- Transitive dependencies: 0.8 opacity.
-- Sort order: direct first, then by risk (zombie, ghost, tombstone, alive), then alphabetical.
+**Ground**:
+- Soil band starts at 78% of scene height (~360px from top on 460px scene)
+- linearGradient from #232840 at top to #0f1219 at bottom
+- Grass edge: wavy path stroke (#2a4a20, opacity 0.4) at ground line
 
-Advisory badge:
-- Red circle "!" in top-right corner of grave (18px diameter, var(--danger)).
-- Shows on any package with advisories.length > 0, regardless of plot.
-- Also shown in table view and evidence panel.
+**Graves (SVG `<g>` elements, each with data-index for click/focus)**:
+- **Alive**: green sprout (circle + stem + 2 leaf ellipses), ~40px tall, color #2a5c3a
+- **Ghost**: grey tombstone + white translucent ghost SVG floating 30px above (rounded head, wavy hem, 2 eyes), animated drift under motion-allowed
+- **Tombstone**: grey headstone (#6a6a8a), height = 14px per year (min 50px, max 140px), years engraved as text
+- **Zombie**: red-tinted headstone (#8a6a6a fill, #c0392b 2px stroke) + zombie hand rising from soil (forearm, palm, 4 fingers, thumb, ~36px tall, #4a9a3a), animated rise under motion-allowed
 
-Fog:
-- Radial gradient overlay (var(--fog), transparent), positioned absolutely over entire scene.
-- Opacity = (risky packages / total packages) × 0.65, max 0.65.
-- Caption: "Fog N% — X of Y packages at risk" at bottom-center.
+**Layout**:
+- Direct deps: 1.2× scale (larger width)
+- Graves sorted: direct first → zombie/ghost/tombstone/alive → alphabetical
+- Each grave positioned along x-axis with y at ground level, wrapping to multiple rows
 
-Height legend:
-- Top-left corner, semi-transparent background.
-- Shows "Headstone height = years since last release" with 2y, 5y, 10y markers.
+**Advisory badge**:
+- Red circle "!" (9px radius, #c0392b fill) in top-right of stone, white "!" text
+- Shows on any package with advisories, zombie or alive
+- Danger accent (#c0392b) ONLY for zombie stones, advisory badges, and panel warnings
 
-Interaction:
-- Each grave is a `<button>` with `role="listitem"`, `tabindex="0"`.
+**Fog**:
+- SVG ellipse (80% width, 30% height) at bottom with radial gradient (#b0c8e8, opacity = risky_ratio × 0.65)
+- 0 risky = no fog (opacity 0)
+- Caption as `<text>` at (20, 30): "Fog N% — X of Y packages at risk" (#8090b0, 11px)
+
+**Height legend**:
+- SVG `<g>` at (20, 80): semi-transparent rect + 4 text lines
+- "Years since last release: / 2 years: ~28px / 5 years: ~70px / 10 years: ~140px (max)"
+
+**Interaction**:
+- Each grave is SVG `<g class="grave-item">` with role=button, tabindex=0, aria-label with full name
+- Click or Enter/Space opens evidence panel (role=dialog, aria-modal, focus on close button)
+- Escape or close button closes panel, returns focus to grave (tracked via data-triggerElementIndex)
+- Full package name in `<title>` element for tooltip when truncated
 - `aria-label`: "name@version — plot [— has advisory]".
 - `title`: full package name (for truncated labels).
 - Tab/arrow keys navigate, Enter/Space opens evidence panel, Escape closes.

@@ -13,7 +13,7 @@ export const html = `
   <textarea id="paste-area" placeholder='{"lockfileVersion": 3, "packages": {...}}' aria-label="Paste package-lock.json contents"></textarea>
   <div class="drop-zone-actions">
     <button id="analyze-btn" disabled>Analyze</button>
-    <button id="demo-btn">Try the demo lockfile</button>
+    <span class="demo-link-wrap">or <a href="#" id="demo-link">try the demo lockfile</a></span>
   </div>
 </section>
 
@@ -29,20 +29,7 @@ export const html = `
 <button id="report-btn" aria-label="Export findings as Markdown">&#x1F4C4; Export Report</button>
 
 <main id="graveyard-wrap" role="main" aria-label="Graveyard">
-  <div id="graveyard-scene">
-    <div id="sky" aria-hidden="true"></div>
-    <div id="moon" aria-hidden="true"></div>
-    <div id="fog" aria-hidden="true"></div>
-    <div id="fog-caption" aria-live="polite"></div>
-    <div id="ground" aria-hidden="true"></div>
-    <div id="height-legend" aria-hidden="true">
-      <strong>Headstone height = years since last release</strong>
-      <div>2 years: ~28px</div>
-      <div>5 years: ~70px</div>
-      <div>10 years: ~140px (max)</div>
-    </div>
-    <div id="graveyard" role="list" aria-label="Packages"></div>
-  </div>
+  <!-- Scene will be inserted here by JavaScript -->
 </main>
 
 <section id="table-view" aria-label="Packages table">
@@ -63,7 +50,7 @@ export const html = `
 
 <!-- Evidence panel -->
 <div id="panel-backdrop" aria-hidden="true"></div>
-<aside id="panel" role="complementary" aria-label="Package evidence" aria-modal="true">
+<aside id="panel" role="dialog" aria-modal="true" aria-hidden="true">
   <button id="panel-close" aria-label="Close panel">&#x2715; Close</button>
   <div id="panel-inner"></div>
 </aside>

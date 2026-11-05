@@ -470,7 +470,7 @@ describe("handleHaunt — per-request package limit", () => {
   });
 });
 
-describe("handleHaunt — OSV querybatch chunking (mutant 5)", () => {
+describe("handleHaunt — OSV querybatch: one call per request", () => {
   beforeEach(() => {
     cachesStub.default.match.mockResolvedValue(undefined);
   });
@@ -479,11 +479,7 @@ describe("handleHaunt — OSV querybatch chunking (mutant 5)", () => {
     vi.restoreAllMocks();
   });
 
-  it("OSV querybatch chunking works (tested via multiple small requests)", async () => {
-    // Since MAX_PACKAGES_PER_REQUEST is 10, we can't send 1001 in one request.
-    // Instead, verify the chunking logic by examining how OSV batching happens
-    // when we send packages that share unique names (forcing querybatch to be called)
-    
+  it("makes exactly one OSV querybatch call per request", async () => {
     let querybatchCallCount = 0;
     
     const fetchSpy = vi.fn(async (url: string | URL | Request) => {
@@ -499,8 +495,8 @@ describe("handleHaunt — OSV querybatch chunking (mutant 5)", () => {
         const body = await reqUrl.json() as { queries: unknown[] };
         const queryCount = body.queries.length;
         
-        // Verify chunking limit: no single call should exceed 1000
-        expect(queryCount).toBeLessThanOrEqual(1000);
+        // Since MAX_PACKAGES_PER_REQUEST is 10, we never exceed it
+        expect(queryCount).toBeLessThanOrEqual(10);
         
         const results = Array.from({ length: queryCount }, () => ({ vulns: [] }));
         return makeJsonResponse({ results });
@@ -522,7 +518,7 @@ describe("handleHaunt — OSV querybatch chunking (mutant 5)", () => {
     
     expect(res.status).toBe(200);
     
-    // With 10 packages, we should get exactly 1 querybatch call
+    // With 10 packages, we should get exactly 1 querybatch call (not chunked)
     expect(querybatchCallCount).toBe(1);
   });
 });

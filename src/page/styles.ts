@@ -55,15 +55,17 @@ textarea#paste-area{
   border:1px solid var(--border);border-radius:4px;color:var(--text);
   font-family:var(--mono);font-size:.78rem;padding:.5rem;resize:vertical
 }
-.drop-zone-actions{margin-top:.75rem;display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
-#analyze-btn,#demo-btn{
+.drop-zone-actions{margin-top:.75rem;display:flex;gap:.75rem;align-items:center;justify-content:center;flex-wrap:wrap}
+#analyze-btn{
   padding:.6rem 1.8rem;border:none;border-radius:4px;cursor:pointer;
-  font-size:.9rem;font-weight:600;letter-spacing:.03em;transition:opacity .2s
+  font-size:.9rem;font-weight:600;letter-spacing:.03em;transition:opacity .2s;
+  background:var(--danger);color:#fff
 }
-#analyze-btn{background:var(--danger);color:#fff}
-#demo-btn{background:var(--ghost-blue);color:#fff}
-#analyze-btn:hover,#demo-btn:hover{opacity:.85}
+#analyze-btn:hover{opacity:.85}
 #analyze-btn:disabled{opacity:.4;cursor:not-allowed}
+.demo-link-wrap{color:var(--muted);font-size:.88rem}
+#demo-link{color:var(--ghost-blue);text-decoration:none;border-bottom:1px dashed var(--ghost-blue)}
+#demo-link:hover{color:var(--text);border-bottom-color:var(--text)}
 
 /* ── Progress ──────────────────────────────────────────────────────── */
 #progress{
@@ -119,137 +121,39 @@ textarea#paste-area{
 
 /* ── Graveyard scene ─────────────────────────────────────────────────── */
 #graveyard-wrap{
-  position:relative;overflow:hidden;
-  min-height:500px;flex:1;display:flex;flex-direction:column
+  display:none;position:relative;margin:1rem auto;max-width:1200px;width:calc(100% - 2rem);
+  z-index:5
 }
-#graveyard-scene{
-  position:relative;flex:1;min-height:400px;
-  display:flex;flex-direction:column;justify-content:flex-end;
-  padding:2rem 1rem 1rem
-}
-
-/* Night sky background */
-#sky{
-  position:absolute;top:0;left:0;right:0;bottom:0;z-index:1;
-  background:linear-gradient(to bottom,#0a0d14 0%,#1a1f2e 100%)
-}
-#moon{
-  position:absolute;top:3rem;right:3rem;width:60px;height:60px;
-  border-radius:50%;background:#e8eaf6;box-shadow:0 0 30px rgba(232,234,246,.4);
-  z-index:2
+#graveyard-wrap.visible{display:block}
+.graveyard-container{position:relative;width:100%}
+.graveyard-svg{
+  width:100%;height:auto;display:block;
+  min-height:360px
 }
 
-/* Fog layer */
-#fog{
-  position:absolute;inset:0;pointer-events:none;z-index:5;
-  background:radial-gradient(ellipse 80% 40% at 50% 100%,var(--fog),transparent);
-  opacity:0;transition:opacity 1.5s
-}
-@media (prefers-reduced-motion:reduce){
-  #fog{transition:none}
-}
-
-/* Fog caption */
-#fog-caption{
-  position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);
-  font-size:.75rem;color:var(--muted);opacity:0;transition:opacity 1s;
-  z-index:6;pointer-events:none;text-align:center
-}
-#fog-caption.visible{opacity:1}
-
-/* Ground */
-#ground{
-  position:absolute;bottom:0;left:0;right:0;height:100px;z-index:3;
-  background:linear-gradient(to top,var(--ground) 0%,var(--ground-top) 60%,transparent 100%)
-}
-
-/* Graves container */
-#graveyard{
-  position:relative;z-index:4;
-  display:flex;flex-wrap:wrap;align-content:flex-end;align-items:flex-end;
-  gap:1rem;justify-content:center;padding-bottom:2rem;
-  min-height:200px
-}
-
-/* ── Graves ─────────────────────────────────────────────────────────── */
-.grave{
-  position:relative;cursor:pointer;display:flex;flex-direction:column;
-  align-items:center;user-select:none;transition:transform .15s
-}
-.grave:hover,.grave:focus-visible{transform:translateY(-4px)}
-
-/* Direct deps are bigger */
-.direct .grave-stone{transform:scale(1.2)}
-.transitive{opacity:.8}
-
-/* Grave SVG stone */
-.grave-stone{
-  position:relative;transition:transform .15s
-}
-.stone-svg{display:block}
-
-/* Grave label */
-.grave-label{
-  font-family:var(--mono);font-size:.65rem;color:var(--muted);
-  text-align:center;margin-top:.35rem;max-width:90px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-}
-.grave-plot-label{
-  font-size:.6rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700;
-  margin-top:.15rem
-}
-
-/* Plot colours */
-.alive .grave-plot-label{color:#6aaa6a}
-.ghost .grave-plot-label{color:var(--ghost-blue)}
-.tombstone .grave-plot-label{color:#a080c0}
-.zombie .grave-plot-label{color:var(--zombie-green)}
-
-/* Advisory badge on grave */
-.grave-advisory-badge{
-  position:absolute;top:-8px;right:-8px;
-  width:18px;height:18px;border-radius:50%;
-  background:var(--danger);color:#fff;font-size:.7rem;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.3);
-  pointer-events:none
-}
-
-/* Ghost drift — disabled by prefers-reduced-motion */
-@media (prefers-reduced-motion:no-preference){
-  .ghost .grave-stone{
-    animation:drift 3s ease-in-out infinite;
-  }
-  @keyframes drift{
-    0%,100%{transform:translateY(0)}
-    50%{transform:translateY(-8px)}
-  }
-  .ghost.direct .grave-stone{
-    animation:drift-large 3s ease-in-out infinite;
-  }
-  @keyframes drift-large{
-    0%,100%{transform:scale(1.2) translateY(0)}
-    50%{transform:scale(1.2) translateY(-8px)}
-  }
-  
-  /* Zombie rising hand */
-  .zombie .grave-hand{
-    animation:rise 2.5s ease-in-out infinite;
-  }
-  @keyframes rise{
-    0%,100%{transform:translateY(40%);opacity:.6}
-    50%{transform:translateY(0);opacity:1}
+/* Reduced motion: disable animations */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-float, .zombie-hand, .fog-layer {
+    animation:none !important;
   }
 }
 
-/* Height scale legend */
-#height-legend{
-  position:absolute;top:2rem;left:1rem;
-  font-size:.7rem;color:var(--muted);z-index:6;
-  background:rgba(10,13,20,.8);padding:.5rem .75rem;border-radius:4px;
-  border:1px solid var(--border)
+/* Animations for ghost and zombie (only when motion is allowed) */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ghost-drift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes zombie-rise {
+    0%, 100% { transform: translateY(40%); opacity: 0.6; }
+    50% { transform: translateY(0); opacity: 1; }
+  }
 }
-#height-legend div{margin-top:.25rem}
+
+/* Responsive scene */
+@media(max-width:400px){
+  .graveyard-svg{min-height:300px}
+}
 
 /* ── Evidence panel ──────────────────────────────────────────────────── */
 #panel-backdrop{
@@ -270,20 +174,32 @@ textarea#paste-area{
   cursor:pointer;padding:.25rem .6rem;font-size:.85rem
 }
 #panel h2{font-size:1rem;font-family:var(--mono);word-break:break-all}
+#panel .panel-badges{margin:.5rem 0;display:flex;gap:.5rem;flex-wrap:wrap}
 #panel .panel-badge{
-  display:inline-block;margin:.5rem 0;padding:.2rem .6rem;
+  display:inline-block;padding:.2rem .6rem;
   border-radius:3px;font-size:.75rem;font-weight:700;letter-spacing:.05em
 }
 .badge-alive{background:rgba(106,170,106,.2);color:#6aaa6a}
 .badge-ghost{background:rgba(128,144,208,.2);color:var(--ghost-blue)}
 .badge-tombstone{background:rgba(160,128,192,.2);color:#a080c0}
 .badge-zombie{background:rgba(74,154,58,.2);color:var(--zombie-green)}
-.badge-advisory{background:rgba(192,57,43,.2);color:var(--danger);margin-left:.5rem}
+.badge-advisory{background:rgba(192,57,43,.2);color:var(--danger)}
 #panel dl{margin-top:.75rem;display:grid;grid-template-columns:auto 1fr;gap:.4rem .75rem;font-size:.85rem}
 #panel dt{color:var(--muted);white-space:nowrap}
 #panel dd{color:var(--text);word-break:break-word}
-#panel .advisory-list{margin-top:.5rem;display:flex;flex-direction:column;gap:.3rem}
-#panel .advisory-item a{color:var(--danger);font-family:var(--mono);font-size:.82rem}
+#panel .advisory-list{margin-top:.5rem;display:flex;flex-direction:column;gap:.5rem}
+#panel .advisory-item{display:flex;flex-direction:column;gap:.25rem}
+#panel .advisory-item a{color:var(--danger);font-family:var(--mono);font-size:.82rem;font-weight:600}
+#panel .severity-badge{
+  display:inline-block;margin-left:.4rem;padding:.15rem .4rem;
+  border-radius:3px;background:rgba(192,57,43,.2);color:var(--danger);
+  font-size:.7rem;font-weight:700;letter-spacing:.05em
+}
+#panel .advisory-summary{color:var(--muted);font-size:.8rem;margin-top:.15rem}
+#panel .deprecation-msg{
+  padding:.5rem;background:rgba(255,180,50,.1);border-left:3px solid #ffb432;
+  border-radius:0 4px 4px 0;font-size:.85rem;color:#ffb432
+}
 #panel .next-step{
   margin-top:1rem;padding:.75rem;background:rgba(255,255,255,.04);
   border-left:3px solid var(--accent);border-radius:0 4px 4px 0;
@@ -326,15 +242,12 @@ footer a{color:var(--muted)}
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media(max-width:400px){
-  .grave-stone{transform:scale(.9)}
-  .direct .grave-stone{transform:scale(1.05)}
-  .grave-label{max-width:70px;font-size:.58rem}
   header h1{font-size:1.5rem}
-  #moon{width:40px;height:40px;top:2rem;right:2rem}
-  #height-legend{font-size:.65rem;padding:.4rem .6rem}
+  #analyze-btn{padding:.5rem 1.4rem;font-size:.85rem}
+  .demo-link-wrap{font-size:.8rem}
 }
 
 @media(min-width:768px){
-  #graveyard{gap:1.5rem}
+  .graveyard-svg{min-height:460px}
 }
 `;

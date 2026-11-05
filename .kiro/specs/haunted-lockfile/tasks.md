@@ -111,3 +111,62 @@ Tasks are ordered; each depends on the ones before it.
 - [x] Works at 360px width (no horizontal scroll, scene scrolls inside container)
 - [x] prefers-reduced-motion turns off all animation (drift, hand, fog transition)
 - [x] All files under 500 lines: styles.ts (340), html.ts (78), client.ts (556), page.ts (26)
+
+## Code Review Round 4 — Completed 2026-11-05
+
+### A. Scene as self-contained SVG block
+- [x] Removed all position:fixed elements (moon, legend were floating)
+- [x] Scene is now a single `<section>` with inline `<svg viewBox>` right under stats chips
+- [x] Moon with proper SVG radial glow and craters inside scene (upper right)
+- [x] Stars (7 static dots, twinkling disabled under reduced-motion) inside scene
+- [x] Fog caption and height legend rendered INSIDE the SVG, not floating
+- [x] Scene height: ~460px desktop, ~360px phones (responsive via CSS)
+- [x] Ground (soil band + grass edge) at 78% of scene height (~360px from top)
+- [x] No empty half-screen gap between form and graveyard
+
+### B. Grave designs and labels
+- [x] Zombie: red-tinted headstone (#8a6a6a fill, #c0392b stroke) + clearly visible zombie hand (SVG: forearm, palm, 4 fingers, thumb, ~36px tall)
+- [x] Ghost: translucent white SVG ghost (rounded head, wavy hem, 2 eyes) floating 30px above its stone
+- [x] Tombstone: grey stone with engraved years text
+- [x] Alive: small green sprout (unchanged)
+- [x] Danger accent (#c0392b) ONLY for zombie stones, advisory badges, and panel warnings
+- [x] Package name and plot label ON the ground, inside soil band, readable (12px+ desktop), AA contrast
+- [x] Name truncated with ellipsis, full name in `<title>` tooltip
+
+### C. Fog rendering
+- [x] Fog caption "Fog 100% — 1 of 1 packages at risk" visible inside scene (top-left as text element)
+- [x] Fog is 2–3 layered semi-transparent SVG ellipses over lower half
+- [x] Fog opacity = share of risky packages (0 risky = no fog at all)
+- [x] Slow drifting disabled under prefers-reduced-motion
+
+### D. Demo button → link, no button stacking
+- [x] "Try the demo lockfile" changed from button to text link next to Analyze
+- [x] Clicking link loads demo lockfile AND runs Analyze immediately
+- [x] Buttons never stack at 360px width (only one big button now)
+
+### E. Legend and scene visibility
+- [x] Legend and scene hidden (display:none) until results arrive
+- [x] Graveyard shown with `.visible` class after first results render
+
+### F. Evidence panel as accessible dialog
+- [x] Panel has role=dialog, aria-modal=true, aria-labelledby pointing to package name h2
+- [x] Focus moves to close button when opened
+- [x] Escape and close button both return focus to the grave that opened it (stored in data-triggerElementIndex)
+- [x] Panel shows: plot with icon+word, locked version, last release date+years, deprecation, advisory id+severity+summary linking to osv.dev, which sources answered, next step
+
+### G. Dead code removal
+- [x] Removed OSV querybatch chunking loop (MAX_PACKAGES_PER_REQUEST=10, never hits 1000-query limit)
+- [x] One querybatch call per request (never chunked)
+- [x] Removed vacuous chunking test, replaced with assertion: one querybatch call per request
+
+### H. File split for <500 lines
+- [x] Split `client.ts` (was 556 lines) into three modules:
+  - `src/page/client.ts` — 427 lines (main logic)
+  - `src/page/scene.ts` — 225 lines (SVG scene builder)
+  - `src/page/panel.ts` — 103 lines (evidence dialog)
+- [x] All files now under 500 lines
+
+### I. Tests and verification
+- [x] All 59 tests pass
+- [x] Typecheck passes with no errors
+- [x] tasks.md and design.md updated
