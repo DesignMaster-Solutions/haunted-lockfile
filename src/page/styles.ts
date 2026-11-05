@@ -114,7 +114,7 @@ textarea#paste-area{
 }
 #stats.visible{display:flex}
 .stat{padding:.25rem .75rem;border-radius:3px;background:rgba(255,255,255,.04);font-weight:600}
-.stat-zombie{color:var(--zombie-green)}
+.stat-zombie{color:var(--danger)}
 .stat-ghost{color:var(--ghost-blue)}
 .stat-tombstone{color:#a080c0}
 .stat-alive{color:#6aaa6a}
@@ -133,7 +133,7 @@ textarea#paste-area{
 
 /* Reduced motion: disable animations */
 @media (prefers-reduced-motion: reduce) {
-  .ghost-float, .zombie-hand, .fog-layer {
+  .ghost-float, .zombie-hand, .fog-drift-1, .fog-drift-2, .fog-drift-3, .star-twinkle {
     animation:none !important;
   }
 }
@@ -147,6 +147,34 @@ textarea#paste-area{
   @keyframes zombie-rise {
     0%, 100% { transform: translateY(40%); opacity: 0.6; }
     50% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fog-drift-1 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-40px); }
+  }
+  @keyframes fog-drift-2 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(30px); }
+  }
+  @keyframes fog-drift-3 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-20px); }
+  }
+  @keyframes star-twinkle {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.3; }
+  }
+  .fog-drift-1 {
+    animation: fog-drift-1 45s ease-in-out infinite;
+  }
+  .fog-drift-2 {
+    animation: fog-drift-2 55s ease-in-out infinite;
+  }
+  .fog-drift-3 {
+    animation: fog-drift-3 50s ease-in-out infinite;
+  }
+  .star-twinkle {
+    animation: star-twinkle 3s ease-in-out infinite;
   }
 }
 
