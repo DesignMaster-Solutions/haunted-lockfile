@@ -2,27 +2,37 @@
 
 export const sceneRenderer = `
 // ── Scene SVG builder ────────────────────────────────────────────────────
+// Pure layout: direct deps first, then by risk and name; 10 per row, and every row
+// stands on its own ground line (ROW_H below the previous one) so no two graves share a spot.
+// Returns positions in the SAME order as results, so grave i in the DOM is results[i].
+function layoutGraves(results, groundY) {
+  const COLS = 10, SLOT = 80, LEFT = 60, ROW_H = 240;
+  const order = { zombie:0, ghost:1, tombstone:2, alive:3 };
+  const idx = results.map((_, i) => i).sort((a, b) => {
+    const ra = results[a], rb = results[b];
+    if (ra.isDirect !== rb.isDirect) return ra.isDirect ? -1 : 1;
+    if (order[ra.plot] !== order[rb.plot]) return order[ra.plot] - order[rb.plot];
+    return ra.name.localeCompare(rb.name);
+  });
+  const positions = new Array(results.length);
+  idx.forEach((orig, slot) => {
+    const row = Math.floor(slot / COLS);
+    positions[orig] = { x: LEFT + (slot % COLS) * SLOT, ground: groundY + row * ROW_H, row };
+  });
+  const rows = Math.max(1, Math.ceil(results.length / COLS));
+  return { positions, rows, rowHeight: ROW_H };
+}
+
 function buildGraveyardScene(results, groundY) {
   const sceneWidth = 1000;
-  const sceneHeight = 460;
+  const layout = layoutGraves(results, groundY);
+  const sceneHeight = groundY + (layout.rows - 1) * layout.rowHeight + 100;
   const groundHeight = sceneHeight - groundY;
   
-  // Sort: direct first, then by plot severity, then alphabetical
-  const order = { zombie:0, ghost:1, tombstone:2, alive:3 };
-  const sorted = [...results].sort((a,b) => {
-    if (a.isDirect !== b.isDirect) return a.isDirect ? -1 : 1;
-    if (order[a.plot] !== order[b.plot]) return order[a.plot] - order[b.plot];
-    return a.name.localeCompare(b.name);
-  });
-  
-  const graveSpacing = 80;
-  
   let graveElements = '';
-  sorted.forEach((r, i) => {
-    const x = 60 + (i % 10) * graveSpacing;
-    const rowDepth = Math.floor(i / 10);
-    const y = groundY - rowDepth * 140;
-    graveElements += buildGraveSVGElement(r, x, y, groundY, rowDepth, i);
+  results.forEach((r, i) => {
+    const p = layout.positions[i];
+    graveElements += buildGraveSVGElement(r, p.x, p.ground, p.ground, p.row, i);
   });
   
   // Count risky packages for fog
@@ -118,6 +128,8 @@ function buildGraveyardScene(results, groundY) {
     <!-- Grass edge -->
     <path d="M 0 \${groundY} Q 50 \${groundY-3} 100 \${groundY} T 200 \${groundY} T 300 \${groundY} T 400 \${groundY} T 500 \${groundY} T 600 \${groundY} T 700 \${groundY} T 800 \${groundY} T 900 \${groundY} T 1000 \${groundY}" 
           stroke="#2a4a20" stroke-width="2" fill="none" opacity="0.4"/>
+    
+    \${Array.from({ length: layout.rows - 1 }, (_, k) => \`<line x1="0" y1="\${groundY + (k + 1) * layout.rowHeight}" x2="\${sceneWidth}" y2="\${groundY + (k + 1) * layout.rowHeight}" stroke="#2a4a20" stroke-width="2" opacity="0.4"/>\`).join('')}
     
     <!-- Fog overlay -->
     \${fogElements}
