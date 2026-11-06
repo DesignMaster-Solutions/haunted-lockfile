@@ -145,7 +145,7 @@ textarea#paste-area{
     50% { transform: translateY(-8px); }
   }
   @keyframes zombie-rise {
-    0%, 100% { transform: translateY(40%); opacity: 0.6; }
+    0%, 100% { transform: translateY(16px); opacity: 0.6; /* px, not %: in SVG % is of the whole viewBox */ }
     50% { transform: translateY(0); opacity: 1; }
   }
   @keyframes fog-drift-1 {

@@ -212,8 +212,8 @@ function buildGraveSVGElement(r, x, baseGroundY, groundY, rowDepth, index) {
     // Red-tinted stone with rounded top + zombie hand rising from ground
     const rx = stoneWidth / 2;
     const handX = x - stoneWidth / 4; // front-left of stone
-    const handWristY = groundY + 6; // partially buried
-    const handTipY = groundY - 32; // ~38px above ground
+    const handWristY = groundY - 14; // wrist at the soil line, clear of the name label below
+    const handTipY = groundY - 52;
     stoneShape = \`
       <g opacity="\${opacity}">
         <defs>
@@ -286,8 +286,8 @@ function buildGraveSVGElement(r, x, baseGroundY, groundY, rowDepth, index) {
       <title>\${escHtml(r.name)}@\${escHtml(r.version)}</title>
       \${stoneShape}
       \${badge}
-      <text x="\${x}" y="\${labelNameY}" text-anchor="middle" font-size="11" fill="#8090b0" font-family="SF Mono, Fira Code, monospace">\${escHtml(truncName)}</text>
-      <text x="\${x}" y="\${labelPlotY}" text-anchor="middle" font-size="9" fill="\${plotColorText}" font-weight="700" font-family="system-ui, sans-serif" style="text-transform:uppercase;letter-spacing:0.08em;">\${plotLabel}</text>
+      <text x="\${x}" y="\${labelNameY}" text-anchor="middle" font-size="11" fill="#b0bcd8" stroke="#0a0d14" stroke-width="3" paint-order="stroke" font-family="SF Mono, Fira Code, monospace">\${escHtml(truncName)}</text>
+      <text x="\${x}" y="\${labelPlotY}" text-anchor="middle" font-size="9" fill="\${plotColorText}" stroke="#0a0d14" stroke-width="3" paint-order="stroke" font-weight="700" font-family="system-ui, sans-serif" style="text-transform:uppercase;letter-spacing:0.08em;">\${plotLabel}</text>
       \${extraElements}
     </g>
   \`;
