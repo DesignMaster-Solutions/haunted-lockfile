@@ -1,0 +1,79 @@
+{
+ "brand": "Haunted Lockfile · Kiroween 2026 · Design Master Solutions LLC",
+ "voice": "Samantha",
+ "rate": 180,
+ "bg": "#0b0f17",
+ "accent": "#c0392b",
+ "out": "../docs/demo.mp4",
+ "scenes": [
+  {
+   "title": "Haunted Lockfile",
+   "lines": [
+    "Your dependencies,",
+    "as a graveyard.",
+    "Drop a package-lock.json."
+   ],
+   "shots": [
+    "01-landing.png"
+   ],
+   "say": "Every JavaScript project carries hundreds of packages nobody looks at again. Haunted Lockfile turns your package lock file into a graveyard, so the dead ones are impossible to miss. You paste or drop the lock file. Nothing about your project is stored."
+  },
+  {
+   "title": "Four plots, real data",
+   "lines": [
+    "Zombie: abandoned + advisory",
+    "Ghost: deprecated or silent",
+    "Tombstone: years, no release",
+    "Alive: maintained"
+   ],
+   "shots": [
+    "02-yard.png"
+   ],
+   "say": "Each package lands in one of four plots, from live data: deps dot dev, the OSV vulnerability database and the npm registry. Zombies are packages that stopped moving but still carry a known advisory. Ghosts are deprecated or silent. Tombstones are finished libraries with no release in years. Alive is what is maintained. The fog thickens with the share of risky packages."
+  },
+  {
+   "title": "Click a grave, get the next step",
+   "lines": [
+    "request@2.88.2",
+    "deprecated, 6.7 years old",
+    "GHSA-p8p7-x288-28g6 (SSRF)",
+    "Next step on every grave"
+   ],
+   "shots": [
+    "03-zombie.png"
+   ],
+   "say": "Click any grave. Request, version two point eighty eight point two, is a zombie: deprecated, six point seven years since its last release, and still exposed to a server side request forgery advisory. The panel says what to do next: look for a maintained alternative."
+  },
+  {
+   "title": "Table view and report",
+   "lines": [
+    "Same verdicts, one row each",
+    "Export Report for the PR"
+   ],
+   "shots": [
+    "04-table.png"
+   ],
+   "say": "The table view lists the same verdicts with version, days since release and advisories, and Export Report gives a file you can attach to a pull request or a ticket."
+  },
+  {
+   "title": "Built spec-first with Kiro",
+   "lines": [
+    "Steering docs, EARS requirements, design, tasks",
+    "Hooks run tests and typecheck on every save"
+   ],
+   "mono_cmd": "git ls-files .kiro",
+   "mono_cwd": "..",
+   "say": "The project started in Kiro, spec first. Steering documents set the product, stack and layout. The spec holds thirty two acceptance criteria in EARS notation, a design document and an ordered task list that Kiro worked through. Two hooks run the tests and the type check every time a source file is saved."
+  },
+  {
+   "title": "Tested against the real APIs",
+   "lines": [
+    "Property-based tests with fast-check",
+    "Fixtures saved from deps.dev, OSV and npm"
+   ],
+   "mono_cmd": "npx vitest run 2>&1 | grep -E 'Test Files|Tests '",
+   "mono_cwd": "..",
+   "say": "The classifier is covered by property based tests and by fixtures saved from the real APIs. The whole suite runs green. Haunted Lockfile is live on Cloudflare Workers. Try the demo lock file and see what is buried in yours."
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+file '/Users/alandebortolo/Dev/DesignMaster-USA/Hackathons/haunted-lockfile/video/s0.mp4'
+file '/Users/alandebortolo/Dev/DesignMaster-USA/Hackathons/haunted-lockfile/video/s1.mp4'
+file '/Users/alandebortolo/Dev/DesignMaster-USA/Hackathons/haunted-lockfile/video/s2.mp4'
+file '/Users/alandebortolo/Dev/DesignMaster-USA/Hackathons/haunted-lockfile/video/s3.mp4'
+file '/Users/alandebortolo/Dev/DesignMaster-USA/Hackathons/haunted-lockfile/video/s4.mp4'
+file '/Users/alandebortolo/Dev/DesignMaster-USA/Hackathons/haunted-lockfile/video/s5.mp4'
