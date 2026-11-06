@@ -2,6 +2,7 @@
 
 import { sceneRenderer } from "./scene.js";
 import { panelHandler } from "./panel.js";
+import { DEMO_LOCKFILE } from "./demo.js";
 
 export const clientScript = `
 (function(){
@@ -11,8 +12,8 @@ export const clientScript = `
   const CHUNK_SIZE = 10; // Must match MAX_PACKAGES_PER_REQUEST in haunt.ts
   const MAX_CONCURRENT_CHUNKS = 4;
 
-  // Demo lockfile (contains request@2.88.2 zombie)
-  const DEMO_LOCKFILE = {"name":"test-project","version":"1.0.0","lockfileVersion":3,"requires":true,"packages":{"":{"name":"test-project","version":"1.0.0","dependencies":{"request":"^2.88.2"}},"node_modules/request":{"version":"2.88.2","resolved":"https://registry.npmjs.org/request/-/request-2.88.2.tgz","integrity":"sha512-MsvtOrfG9ZcrOwAW+Qi+F6HbD0CWXEh9ou77uOb7FM2WPhwT7smM833PzanhJLsgXjN89Ir6V2PczXNnMpwKhw==","deprecated":"request has been deprecated, see https://github.com/request/request/issues/3142"}}};
+  // Demo lockfile: see demo.ts (all four plots)
+  const DEMO_LOCKFILE = ${JSON.stringify(DEMO_LOCKFILE)};
 
   // ── State ────────────────────────────────────────────────────────────────
   let allResults = [];
