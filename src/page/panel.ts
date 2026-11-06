@@ -22,7 +22,7 @@ function openPanel(r, triggerElement) {
   const sourcesText = [
     r.sources.depsdev ? 'deps.dev ✓' : 'deps.dev ✗',
     r.sources.osv     ? 'OSV ✓'     : 'OSV ✗',
-    r.sources.npm     ? 'npm ✓'     : 'npm ✗',
+    r.sources.npm == null ? 'npm (not needed)' : r.sources.npm ? 'npm ✓' : 'npm ✗',
   ].join(' · ');
 
   const advBadge = (r.advisories && r.advisories.length > 0) 

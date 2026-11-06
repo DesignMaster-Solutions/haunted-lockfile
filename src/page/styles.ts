@@ -217,6 +217,7 @@ textarea#paste-area{
 #panel dd{color:var(--text);word-break:break-word}
 #panel .advisory-list{margin-top:.5rem;display:flex;flex-direction:column;gap:.5rem}
 #panel .advisory-item{display:flex;flex-direction:column;gap:.25rem}
+#panel dd a{color:var(--text);text-decoration:underline}
 #panel .advisory-item a{color:var(--danger);font-family:var(--mono);font-size:.82rem;font-weight:600}
 #panel .severity-badge{
   display:inline-block;margin-left:.4rem;padding:.15rem .4rem;

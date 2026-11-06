@@ -32,7 +32,8 @@ export interface NpmMeta {
 export interface Sources {
   depsdev: boolean;
   osv: boolean;
-  npm: boolean;
+  /** null = not queried (deps.dev already had the locked version; npm is only a fallback) */
+  npm: boolean | null;
 }
 
 export interface HauntResult {

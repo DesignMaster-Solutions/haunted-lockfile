@@ -19,7 +19,7 @@ export function classify(
   advisories: OsvAdvisory[],
   npm: NpmMeta | null,
   now: number,
-  sources: { depsdev: boolean; osv: boolean; npm: boolean }
+  sources: { depsdev: boolean; osv: boolean; npm: boolean | null }
 ): HauntResult {
   // ── Deprecation ─────────────────────────────────────────────────────────────
   // First try npm registry, then deps.dev for the LOCKED version

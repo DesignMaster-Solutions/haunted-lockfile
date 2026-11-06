@@ -377,7 +377,7 @@ export async function handleHaunt(request: Request): Promise<Response> {
     return classify(pkg, depsdev, advisories, npm, now, {
       depsdev: depsdev !== null,
       osv: osvOk,
-      npm: npmCalled && npm !== null,
+      npm: npmCalled ? npm !== null : null,
     });
   });
 

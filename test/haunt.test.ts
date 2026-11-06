@@ -278,7 +278,10 @@ describe("handleHaunt — defect fixes", () => {
     const req = makeRequest({
       packages: [{ name: "pkg", version: "1.0.0", isDirect: true }],
     });
-    await handleHaunt(req);
+    const res = await handleHaunt(req);
+    const body = await res.json() as { results: Array<{ sources: { npm: boolean | null } }> };
+    // not queried is not a failure: the panel must not show "npm ✗"
+    expect(body.results[0]?.sources.npm).toBeNull();
 
     // Verify npm registry was NOT called
     const npmCalls = (fetchSpy.mock.calls as Array<[string | URL | Request]>).filter((call) => {

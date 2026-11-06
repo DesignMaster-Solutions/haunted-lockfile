@@ -147,10 +147,10 @@ function buildGraveyardScene(results, groundY) {
     <!-- Height legend inside scene -->
     <g transform="translate(20, 80)">
       <rect x="0" y="0" width="180" height="70" fill="rgba(10,13,20,0.85)" stroke="#2a304a" stroke-width="1" rx="4"/>
-      <text x="8" y="18" fill="#e8eaf6" font-size="10" font-weight="700" font-family="system-ui, sans-serif">Years since last release:</text>
-      <text x="8" y="35" fill="#8090b0" font-size="9" font-family="system-ui, sans-serif">2 years: ~28px</text>
-      <text x="8" y="50" fill="#8090b0" font-size="9" font-family="system-ui, sans-serif">5 years: ~70px</text>
-      <text x="8" y="65" fill="#8090b0" font-size="9" font-family="system-ui, sans-serif">10 years: ~140px (max)</text>
+      <text x="8" y="18" fill="#e8eaf6" font-size="10" font-weight="700" font-family="system-ui, sans-serif">Stone height = age</text>
+      <text x="8" y="35" fill="#8090b0" font-size="9" font-family="system-ui, sans-serif">Taller stone, older last release</text>
+      <text x="8" y="50" fill="#8090b0" font-size="9" font-family="system-ui, sans-serif">5 years: half height</text>
+      <text x="8" y="65" fill="#8090b0" font-size="9" font-family="system-ui, sans-serif">10+ years: tallest</text>
     </g>
   </svg>
 </section>
