@@ -23,7 +23,7 @@ describe("graveyard layout", () => {
     const ids = [...svg.matchAll(/class="grave-item" data-index="(\d+)"/g)].map((m) => Number(m[1]));
     expect(ids).toEqual(results.map((_, i) => i));
     for (const [i, m] of [...svg.matchAll(/<title>([^<]+)<\/title>/g)].entries()) {
-      expect(m[1]).toBe(`${results[i].name}@1.0.0`);
+      expect(m[1]).toBe(`${results[i]!.name}@1.0.0`);
     }
   });
 
